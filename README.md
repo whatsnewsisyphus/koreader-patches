@@ -10,6 +10,8 @@ I don't have page numbers in my titles (yet) so I haven't had a chance to develo
 
 There appears to be a screenshot bug that shows the clock when a screenshot is taken, ignore that bit.
 
+Make sure to grab the dogear icons from my icons folder for the status badges, or feel free to replace them with your own.
+
 With status badges
 <img width="1236" height="1648" alt="FileManager_2025-11-19_213130" src="https://github.com/user-attachments/assets/08a036c0-991c-4b33-894e-b685a92f60ec" />
 
