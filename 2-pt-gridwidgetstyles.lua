@@ -32,6 +32,9 @@ local DataStorage = require("datastorage")
 local Font        = require("ui/font")
 local RenderText  = require("ui/rendertext")
 
+-- Project: Title font helper (safe require)
+local ptutil_ok, ptutil = pcall(require, "ptutil")
+
 -- ============================================================================
 -- CUSTOM SETTINGS - Edit these to customize your progress bar appearance
 -- ============================================================================
@@ -67,6 +70,9 @@ local SETTINGS = {
     -- Status badge appearance
     status_badge_icon_size       = Screen:scaleBySize(13), -- icon size inside the circle
     status_badge_background_size = Screen:scaleBySize(17), -- circle diameter
+
+    -- Make list view status icons match the dogear badges used in grid view
+    match_listviewstatusicons = true,
 
     -- Complete book indicator. Equal to bar height with a high radius makes it a circle.
     complete_width = Screen:scaleBySize(9),
@@ -141,9 +147,6 @@ local SETTINGS = {
     page_badge_padding_x  = Screen:scaleBySize(4),
     page_badge_padding_y  = Screen:scaleBySize(4),
 
-    -- Use custom-styled folder badges instead of Project:Title frames. Only enabled if the Project:Title menu has them enabled under folder display, will require restart to check and apply
-    style_folder_badges = true,
-
     -- These control whether we actually draw name + count when style_folder_badges is on
     folder_name_badge_enabled = true,
     folder_badge_enabled      = true,
@@ -152,6 +155,10 @@ local SETTINGS = {
     folder_name_badge_bg_color    = "#ffffff",        -- e.g. "#ffffff"
     folder_name_badge_border_color = nil,       -- e.g. "#8080c0"
     folder_name_badge_text_color  = nil,        -- e.g. "#000000"
+
+    -- Folder title badge overrides
+    folder_name_badge_x_offset = nil,  -- use page_badge_x_offset by default. use Screen:scaleBySize(#) to set a custom value
+    folder_name_badge_y_offset = Screen:scaleBySize(0),  -- use page_badge_y_offset by default
 
     -- Debug logging
     debug_logging = false,
@@ -1038,7 +1045,15 @@ local function patchCustomProgress(plugin)
            and self.dir_name then
             local text      = self.dir_name
             local text_size = SETTINGS.page_badge_text_size
-            local face      = Font:getFace("ffont", text_size)
+
+            local face
+            if ptutil_ok and ptutil and ptutil.good_serif then
+                -- Use Project: Title's serif choice
+                face = Font:getFace(ptutil.good_serif, text_size)
+            else
+                -- Fallback to your original UI font
+                face = Font:getFace("ffont", text_size)
+            end
 
             -- Measure single-line text
             local rt = RenderText:sizeUtf8Text(
@@ -1050,9 +1065,16 @@ local function patchCustomProgress(plugin)
             local pad_x = SETTINGS.page_badge_padding_x
             local pad_y = SETTINGS.page_badge_padding_y
 
-            -- Same edge offsets as your page badge (top-left)
-            local x_off = SETTINGS.page_badge_x_offset or 0
-            local y_off = SETTINGS.page_badge_y_offset or 0
+            -- Offsets: folder-specific if set, otherwise fall back to page badge offsets
+            local x_off = SETTINGS.folder_name_badge_x_offset
+            if x_off == nil then
+                x_off = SETTINGS.page_badge_x_offset or 0
+            end
+
+            local y_off = SETTINGS.folder_name_badge_y_offset
+            if y_off == nil then
+                y_off = SETTINGS.page_badge_y_offset or 0
+            end
 
             -- Badge anchored by left offset but always ending at inner right edge.
             -- left  = ix + x_off
