@@ -147,6 +147,11 @@ local SETTINGS = {
     page_badge_padding_x  = Screen:scaleBySize(4),
     page_badge_padding_y  = Screen:scaleBySize(4),
 
+    -- Folder badge styling
+    --   * suppress Project: Title’s own folder ribbons
+    --   * draw the custom folder name + count badges instead
+    style_folder_badges = true,
+
     -- These control whether we actually draw name + count when style_folder_badges is on
     folder_name_badge_enabled = true,
     folder_badge_enabled      = true,
