@@ -32,9 +32,6 @@ local DataStorage = require("datastorage")
 local Font        = require("ui/font")
 local RenderText  = require("ui/rendertext")
 
--- Project: Title font helper (safe require)
-local ptutil_ok, ptutil = pcall(require, "ptutil")
-
 -- ============================================================================
 -- CUSTOM SETTINGS - Edit these to customize your progress bar appearance
 -- ============================================================================
@@ -120,8 +117,10 @@ local SETTINGS = {
     -- e.g. "Some Book P(320).epub" -> 320 pages.
 
     ------------------------------------------------------------------------
-    -- Page-number badge options (uses same P(###) page count)
+    -- Page-number and Folder Name badge options (uses same P(###) page count)
     ------------------------------------------------------------------------
+    page_badge_font        = "source/SourceSans3-Regular.ttf",
+
     page_badge_enabled = true,
 
     -- Corner: "top_left", "top_right", "bottom_left", "bottom_right"
@@ -152,6 +151,8 @@ local SETTINGS = {
     --   * draw the custom folder name + count badges instead
     style_folder_badges = true,
 
+    folder_name_badge_font = "source/SourceSerif4-Regular.ttf",
+
     -- These control whether we actually draw name + count when style_folder_badges is on
     folder_name_badge_enabled = true,
     folder_badge_enabled      = true,
@@ -166,7 +167,7 @@ local SETTINGS = {
     folder_name_badge_y_offset = Screen:scaleBySize(0),  -- use page_badge_y_offset by default
 
     -- Debug logging
-    debug_logging = false,
+    debug_logging = true,
 }
 
 -- ============================================================================
@@ -234,6 +235,18 @@ end
 
 local function round(v)
     return math.floor(v + 0.5)
+end
+
+local function safeGetFace(name, size)
+    -- If name is nil, go straight to ffont.
+    name = name or "ffont"
+    local face = Font:getFace(name, size)
+    if not face then
+        -- Fall back to ffont if the custom font cannot be loaded.
+        logger.warn("[ProgressBar] Could not load font: " .. tostring(name) .. ", falling back to ffont")
+        face = Font:getFace("ffont", size)
+    end
+    return face
 end
 
 -- Extract page count from filepath, based on P(###) in filename (no extension)
@@ -575,8 +588,7 @@ local function patchCustomProgress(plugin)
                     -- Compute the page badge geometry (same logic as in the page badge block).
                     local text      = tostring(page_count)
                     local text_size = SETTINGS.page_badge_text_size
-                    local face      = Font:getFace("ffont", text_size)
-
+                    local face      = safeGetFace(SETTINGS.page_badge_font, text_size)
                     local rt = RenderText:sizeUtf8Text(
                         0, 1000, face, text, false, false
                     )
@@ -934,7 +946,7 @@ local function patchCustomProgress(plugin)
 
             local text      = tostring(page_count)
             local text_size = SETTINGS.page_badge_text_size
-            local face      = Font:getFace("ffont", text_size)
+            local face      = safeGetFace(SETTINGS.page_badge_font, text_size)
 
             -- Measure text
             local rt = RenderText:sizeUtf8Text(
@@ -1050,15 +1062,15 @@ local function patchCustomProgress(plugin)
            and self.dir_name then
             local text      = self.dir_name
             local text_size = SETTINGS.page_badge_text_size
+            local face = safeGetFace(
+                SETTINGS.folder_name_badge_font or SETTINGS.page_badge_font,
+                text_size
+            )
 
-            local face
-            if ptutil_ok and ptutil and ptutil.good_serif then
-                -- Use Project: Title's serif choice
-                face = Font:getFace(ptutil.good_serif, text_size)
-            else
-                -- Fallback to your original UI font
-                face = Font:getFace("ffont", text_size)
-            end
+            -- Measure single-line text
+            local rt = RenderText:sizeUtf8Text(
+                0, 1000, face, text, false, false
+            )
 
             -- Measure single-line text
             local rt = RenderText:sizeUtf8Text(
@@ -1172,7 +1184,7 @@ local function patchCustomProgress(plugin)
             end
 
             local text_size = SETTINGS.page_badge_text_size
-            local face      = Font:getFace("ffont", text_size)
+            local face      = safeGetFace(SETTINGS.page_badge_font, text_size)
 
             local rt = RenderText:sizeUtf8Text(
                 0, 1000, face, badge_text, false, false
